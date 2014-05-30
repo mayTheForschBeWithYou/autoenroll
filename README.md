@@ -11,6 +11,7 @@ The proposed workflows are as follows:
 
 Please note this is a work in progress, and a proof of concept.  Many differnet orgs will have different needs, cultures, and policies in place that may change how you would run something like this.  That being said, this is mainly designed to self heal a client when something goes wrong.   If your users have local admin rights and are smart, they will always win.   Keep that in mind.
 
+Also the auto_reenroll.sh is currently not tested.   It is still POC.
 
 How this works:
 
