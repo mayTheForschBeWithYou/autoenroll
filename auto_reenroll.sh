@@ -9,15 +9,20 @@
 
 
 # by tlark
-# version 0.1
+# version 0.2
+# changed the test JSS URL function to use curl and look for 401 as a HTTP response tyring to access a device object via the API
 
-# define variables below:
+#### define user variables below:
 
-# the URL of your JSS, if you are behind a load balancer you can use the URL of that
+# the URL of your JSS, if you are behind a load balancer you can use the URL and do not put a slash on the end
+# example = https://myjss.company.com:8443
 jssURL=''
 
 # an inviation code from a quickadd package generated from Recon.app
 invitationCode=''
+
+
+#### start variables defined by the code and user variables
 
 # location of the JAMF binary on any web app
 jamfBinary="${jssURL}/bin/jamf.gz"
@@ -57,13 +62,13 @@ fi
 
 jssConnectionTest() {
 
-	jssPing=$(ping -c 1 ${jssURL} ; echo $?)
+	jssTest=$(curl -k -I ${jssURL}/JSSResource/computers/id/1 | awk '/HTTP/ { print $2}')
 	
-	if [[ ${jssPing} == '0' ]]
+	if [[ ${jssTest} == '401' ]]
 	then echo "we can connect to the JSS" 
-    else echo "JSS is not reachable...exiting"
+  else echo "JSS is not reachable...exiting"
     	 exit 0
-    fi
+  fi
 }
 
 downloadBinary() {
@@ -83,10 +88,10 @@ jamfEnroll() {
 
 	if [[ -f /private/var/client/downloads/jamf.gz ]]
 		then echo "looks good"
-        else echo "failed to curl down binary"
-        	 touch /private/var/client/receipts/clientfailed.txt
-        	 exit 0
-    fi
+    else echo "failed to curl down binary"
+         touch /private/var/client/receipts/clientfailed.txt
+         exit 0
+  fi
 
     # if it exists, unzip it
     gzip -d /private/var/client/downloads/jamf.gz
@@ -99,12 +104,16 @@ jamfEnroll() {
         	 touch /private/var/client/receipts/clientfailed.txt
       fi
 
+      # now back up the old JAMF.keychain for those just incase moments
+
+      mv /Library/Application\ Support/JAMF/JAMF.keychain /private/var/client/JAMF.keychain.old 
+
       # now we need to move the binary, apply proper permissions/ownership into place and enroll the client
         mv /private/var/client/downloads/jamf /usr/sbin/jamf
         chown root:wheel /usr/sbin/jamf
         chmod +rx /usr/sbin/jamf
 
-        jamf createConf -url ${jssURL}
+        jamf createConf -k -url ${jssURL}
 
         jamf enroll -invitation ${invitationCode} -noRecon
 
